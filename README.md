@@ -139,11 +139,31 @@ supabase/updates.sql        Tabla de versiones publicadas
 scripts/smoke_test.py       Verificación de conexión y tablas
 ```
 
+## Seguridad
+
+Estado actual, decidido el 2026-10-24:
+
+- **Login local**: el usuario y la contraseña (hash PBKDF2) viven en
+  `%LOCALAPPDATA%\ALKIMIA\auth.json`. Supabase no administra usuarios.
+- **RLS abierto**: las tablas usan políticas `using (true)` para el rol `anon`,
+  y la clave anónima va embebida en el `.exe`. Cualquier persona que descomprima
+  el instalador puede leer, modificar o borrar los datos sin necesitar la
+  contraseña del POS.
+- **Decisión**: se acepta ese riesgo porque el programa se distribuye a un solo
+  cliente de confianza.
+
+Antes de repartir el instalador a terceros, endurecer en este orden:
+
+1. Ejecutar `supabase/hardening.sql`: revoca a `anon` las operaciones que la
+   app no usa y protege el histórico de ventas y cortes de caja.
+2. Migrar el login a Supabase Auth y pasar todas las políticas a
+   `to authenticated`, revocando todo a `anon`. Requiere cambiar
+   `app/auth.py` y `app/ui/login.py`.
+3. Nunca incluir la `service_role` key en el cliente.
+
 ## Notas
 
 - La aplicación requiere conexión a internet para consultar y guardar datos.
 - El archivo `.env` no se sube al repositorio.
-- El login es local; antes de distribuir a terceros asegurarse de tener RLS
-  activado en Supabase y nunca incluir la `service_role` key en el cliente.
 - Firmar digitalmente el instalador es opcional, pero evita advertencias de
   SmartScreen en Windows.
