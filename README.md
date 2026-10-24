@@ -63,9 +63,10 @@ APP_TITLE=ALKIMIA POS
 
 ## Datos del usuario
 
-- `%APPDATA%\ALKIMIA\auth.json`: usuario y contraseña local (hash PBKDF2).
-- `%APPDATA%\ALKIMIA\.env` (opcional): permite sobreescribir la configuración
+- `%LOCALAPPDATA%\ALKIMIA\auth.json`: usuario y contraseña local (hash PBKDF2).
+- `%LOCALAPPDATA%\ALKIMIA\.env` (opcional): permite sobreescribir la configuración
   de Supabase sin recompilar.
+- `%LOCALAPPDATA%\ALKIMIA\logs\alkimia.log`: log de errores (rotativo, 512 KB × 4).
 - Las actualizaciones y desinstalaciones no borran estos archivos.
 
 ## Compilar el instalador
@@ -125,6 +126,7 @@ main.py                     Punto de entrada
 app/auth.py                 Credenciales locales
 app/config.py               Variables de entorno y versión
 app/paths.py                Rutas de desarrollo, PyInstaller y AppData
+app/log.py                  Logging a archivo en AppData
 app/version.py              Versión actual (APP_VERSION)
 app/db/                     Conexión y repositorios de Supabase
 app/services/updates.py     Consulta, descarga y ejecución de actualizaciones

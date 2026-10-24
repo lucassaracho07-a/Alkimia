@@ -2,7 +2,7 @@
 ; Compilar con Inno Setup 6:
 ;   ISCC.exe /DAppVersion=2.0.0 installer\alkimia.iss
 ;
-; La configuración y las credenciales se guardan en %APPDATA%\ALKIMIA,
+; La configuración y las credenciales se guardan en %LOCALAPPDATA%\ALKIMIA,
 ; por lo que se conservan al actualizar o desinstalar.
 
 #ifndef AppVersion

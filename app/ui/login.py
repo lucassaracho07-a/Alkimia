@@ -1,3 +1,4 @@
+import logging
 import tkinter.messagebox as messagebox
 
 import customtkinter as ctk
@@ -7,6 +8,8 @@ from app import auth
 from app.paths import resource_path
 from app.ui import theme
 from app.ui.main_window import MainWindow
+
+logger = logging.getLogger(__name__)
 
 BG = "#1E1E1E"
 ENTRY_BG = "#F2F2F2"
@@ -143,6 +146,7 @@ class LoginWindow(ctk.CTk):
         try:
             self._main = MainWindow(self, user_name=user)
         except Exception as error:
+            logger.exception("No se pudo iniciar el sistema")
             messagebox.showerror(
                 "Login",
                 "No se pudo iniciar el sistema:\n\n" + str(error),
