@@ -2,11 +2,34 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import secrets
 import shutil
 from pathlib import Path
 
 from app.paths import app_data_dir, app_root
+
+def _migrate_from_roaming() -> None:
+    r"""%APPDATA%\ALKIMIA -> %LOCALAPPDATA%\ALKIMIA (una sola vez)."""
+    if os.name != "nt":
+        return
+    old_root = Path(os.environ.get("APPDATA", "")) / "ALKIMIA"
+    new_root = app_data_dir()
+    if not old_root.is_dir() or old_root.resolve() == new_root.resolve():
+        return
+    for item in old_root.iterdir():
+        dest = new_root / item.name
+        if dest.exists():
+            continue
+        try:
+            if item.is_dir():
+                shutil.copytree(item, dest)
+            else:
+                shutil.copy2(item, dest)
+        except OSError:
+            pass
+
+_migrate_from_roaming()
 
 AUTH_FILE = app_data_dir() / "auth.json"
 ITERATIONS = 240_000
