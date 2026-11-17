@@ -1,3 +1,4 @@
+import queue
 import tkinter.messagebox as messagebox
 
 import customtkinter as ctk
@@ -16,6 +17,7 @@ class UpdateDialog(ctk.CTkToplevel):
         self.release = release
         self.mandatory = mandatory
         self._busy = False
+        self._progress_mode = "indeterminate"
         self.title("Actualización disponible")
         self.geometry("480x380")
         self.resizable(False, False)
@@ -130,17 +132,42 @@ class UpdateDialog(ctk.CTkToplevel):
         self.status.configure(text="Descargando actualización...")
         self.progress.configure(mode="indeterminate")
         self.progress.start()
+        self._progress_mode = "indeterminate"
+        # La cola la llena el hilo de descarga y la consume la UI en cada tick.
+        progress_queue: queue.Queue = queue.Queue()
         run_async(
             self,
-            lambda: updates.download_installer(self.release),
+            lambda: updates.download_installer(
+                self.release,
+                progress=lambda done, total: progress_queue.put((done, total)),
+            ),
             on_success=self._downloaded,
             on_error=self._failed,
+            progress=progress_queue,
+            on_progress=self._on_progress,
         )
+
+    def _on_progress(self, value) -> None:
+        done, total = value
+        if self._progress_mode != "determinate":
+            self.progress.stop()
+            self.progress.configure(mode="determinate")
+            self._progress_mode = "determinate"
+        if total:
+            self.progress.set(min(done / total, 1.0))
+            self.status.configure(
+                text=(
+                    f"Descargando... {done / 1e6:.1f} de {total / 1e6:.1f} MB "
+                    f"({done * 100 // total}%)"
+                )
+            )
+        else:
+            self.status.configure(text=f"Descargando... {done / 1e6:.1f} MB")
 
     def _downloaded(self, path) -> None:
         self.progress.stop()
         self.progress.configure(mode="determinate")
-        self.progress.set(0)
+        self.progress.set(1.0)
         self.status.configure(text="Iniciando instalador...")
         try:
             updates.launch_installer(path)
@@ -154,6 +181,7 @@ class UpdateDialog(ctk.CTkToplevel):
         self.progress.stop()
         self.progress.configure(mode="determinate")
         self.progress.set(0)
+        self._progress_mode = "determinate"
         self.status.configure(text="No se pudo actualizar.")
         self.update_button.configure(state="normal", text="Reintentar")
         self.later_button.configure(state="normal")

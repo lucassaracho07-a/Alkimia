@@ -5,7 +5,21 @@ import threading
 logger = logging.getLogger(__name__)
 
 
-def run_async(widget, task, on_success=None, on_error=None, poll_ms: int = 30) -> None:
+def run_async(
+    widget,
+    task,
+    on_success=None,
+    on_error=None,
+    poll_ms: int = 30,
+    progress: queue.Queue | None = None,
+    on_progress=None,
+) -> None:
+    """Corre ``task`` en un hilo y entrega los callbacks en el hilo de UI.
+
+    ``progress`` es una cola que la tarea puede llenar desde su propio hilo
+    (``queue.put``); ``on_progress`` se llama en el hilo de UI con cada valor
+    drenado, para actualizar la barra sin tocar Tkinter desde el hilo.
+    """
     result: queue.Queue = queue.Queue()
 
     def worker() -> None:
@@ -17,7 +31,21 @@ def run_async(widget, task, on_success=None, on_error=None, poll_ms: int = 30) -
 
     threading.Thread(target=worker, daemon=True).start()
 
+    def drain_progress() -> None:
+        if progress is None or on_progress is None:
+            return
+        while True:
+            try:
+                value = progress.get_nowait()
+            except queue.Empty:
+                return
+            try:
+                on_progress(value)
+            except Exception:
+                logger.exception("Excepcion en callback de progreso de tarea asincrona")
+
     def poll() -> None:
+        drain_progress()
         try:
             ok, value = result.get_nowait()
         except queue.Empty:
@@ -26,6 +54,7 @@ def run_async(widget, task, on_success=None, on_error=None, poll_ms: int = 30) -
             except Exception:
                 pass
             return
+        drain_progress()
         try:
             if not widget.winfo_exists():
                 return
